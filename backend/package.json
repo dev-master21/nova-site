@@ -1,7 +1,7 @@
 {
-  "name": "warmplus-backend",
+  "name": "novaestate-backend",
   "version": "1.0.0",
-  "description": "WARM+ Backend API",
+  "description": "NOVA ESTATE Backend API",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon",
