@@ -9,7 +9,7 @@ import routes from './routes';
 import db from './config/database';
 import { thumbnailService } from './services/thumbnail.service';
 import { startThumbnailJob } from './jobs/thumbnail.job';
-import { startBeds24SyncJob } from './jobs/beds24Sync.job';
+//import { startBeds24SyncJob } from './jobs/beds24Sync.job';
 import calendarJob from './jobs/calendar.job';
 
 const app = express();
@@ -117,7 +117,7 @@ app.listen(PORT, async () => {
   console.log('\n📅 Starting thumbnail services...');
   startThumbnailJob();
   console.log('\n📅 Starting price services...');
-  startBeds24SyncJob();
+  //startBeds24SyncJob();
   // Запуск полной синхронизации thumbnails при старте сервера (в фоне)
   console.log('🖼️  Starting initial thumbnail synchronization...\n');
 

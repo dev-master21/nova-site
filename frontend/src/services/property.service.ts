@@ -3,12 +3,19 @@ import api from './api'
 import i18n from '../i18n'
 
 export const propertyService = {
-  /**
-   * Получение детальной информации об объекте
-   */
-  async getPropertyDetails(propertyId: string | number, lang: string = 'ru') {
-    return await api.get(`/properties/${propertyId}`, { params: { lang } })
-  },
+/**
+ * Получение детальной информации об объекте
+ */
+async getPropertyDetails(propertyId: string | number, lang: string = 'ru', viewupdate: string | null = null) {
+  const params: any = { lang }
+  
+  // Добавляем viewupdate только если он передан
+  if (viewupdate) {
+    params.viewupdate = viewupdate
+  }
+  
+  return await api.get(`/properties/${propertyId}`, { params })
+},
 
   /**
    * Расчет стоимости проживания

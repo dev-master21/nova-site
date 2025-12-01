@@ -21,11 +21,17 @@ class PropertyApi {
   /**
    * Получение деталей объекта
    */
-  async getPropertyDetails(propertyId) {
-    const response = await axios.get(`/admin/properties/${propertyId}`)
+  async getPropertyDetails(propertyId, lang = 'ru', viewupdate = null) {
+    const params = { lang }
+    
+    // Добавляем viewupdate только если он передан
+    if (viewupdate) {
+      params.viewupdate = viewupdate
+    }
+    
+    const response = await axios.get(`/properties/${propertyId}`, { params })
     return response.data
   }
-
   /**
    * Обновление объекта
    */

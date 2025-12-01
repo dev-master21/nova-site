@@ -145,22 +145,30 @@ const PropertyDetail = () => {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [isSaleMode])
 
-  const loadProperty = async () => {
-    try {
-      setLoading(true)
-      const response = await propertyService.getPropertyDetails(propertyId, i18n.language)
-      
-      if (response.success) {
-        setProperty(response.data.property)
+    const loadProperty = async () => {
+      try {
+        setLoading(true)
+        
+        // Получаем viewupdate из URL (если есть)
+        const viewupdateToken = searchParams.get('viewupdate')
+        
+        const response = await propertyService.getPropertyDetails(
+          propertyId, 
+          i18n.language,
+          viewupdateToken  // Передаём токен в API
+        )
+        
+        if (response.success) {
+          setProperty(response.data.property)
+        }
+      } catch (error) {
+        console.error('Error loading property:', error)
+        toast.error(t('property.loadError'))
+        navigate('/properties')
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('Error loading property:', error)
-      toast.error(t('property.loadError'))
-      navigate('/properties')
-    } finally {
-      setLoading(false)
     }
-  }
 
   const loadTomorrowPrice = async () => {
     try {

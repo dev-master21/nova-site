@@ -6,6 +6,7 @@ import calendarService from '../services/calendar.service';
 import fs from 'fs-extra';
 import path from 'path';
 import { thumbnailService } from '../services/thumbnail.service'
+import crypto from 'crypto';
 
 class PropertyController {
 /**
@@ -1591,20 +1592,84 @@ async getComplexProperties(req: AuthRequest, res: Response) {
       });
     }
   }
+
 /**
  * ПУБЛИЧНЫЙ: Получение детальной информации об объекте для клиента
+ * ДОБАВЛЕНО: Поддержка просмотра черновиков через подписанный токен
  */
 async getPublicPropertyDetails(req: Request, res: Response) {
   try {
     const { propertyId } = req.params;
-    const { lang = 'ru' } = req.query;
+    const { lang = 'ru', viewupdate } = req.query;
 
-    console.log(`🔍 Публичный запрос объекта #${propertyId}, язык: ${lang}`);
+    console.log(`🔍 Публичный запрос объекта #${propertyId}, язык: ${lang}, viewupdate: ${viewupdate}`);
 
-    // Получаем основную информацию об объекте - ДОБАВЛЕНО complex_name
+    // Определяем условие статуса
+    let statusCondition = "p.status = 'published'";
+    
+    // НОВАЯ ЛОГИКА: Если передан токен viewupdate - проверяем его
+    if (viewupdate) {
+      console.log('🔐 Запрос на просмотр черновика - проверка токена...');
+      
+      try {
+        // Декодируем токен
+        const tokenData = Buffer.from(viewupdate as string, 'base64').toString('utf-8');
+        const [tokenPropertyId, timestamp, signature] = tokenData.split('|');
+        
+        // Проверяем что токен для этого объекта
+        if (tokenPropertyId !== propertyId) {
+          console.log('❌ Токен не соответствует объекту');
+          return res.status(403).json({
+            success: false,
+            message: 'Invalid preview token'
+          });
+        }
+        
+        // Проверяем что токен не истек (1 час)
+        const tokenTime = parseInt(timestamp);
+        const currentTime = Math.floor(Date.now() / 1000);
+        const TOKEN_VALIDITY_HOURS = 1;
+        
+        if (currentTime - tokenTime > TOKEN_VALIDITY_HOURS * 3600) {
+          console.log('❌ Токен истек');
+          return res.status(403).json({
+            success: false,
+            message: 'Preview token expired'
+          });
+        }
+        
+        // Проверяем подпись
+        const SECRET_KEY = process.env.PREVIEW_TOKEN_SECRET || 'your-shared-secret-key-between-projects';
+        const expectedSignature = crypto
+          .createHmac('sha256', SECRET_KEY)
+          .update(`${tokenPropertyId}|${timestamp}`)
+          .digest('hex');
+        
+        if (signature !== expectedSignature) {
+          console.log('❌ Неверная подпись токена');
+          return res.status(403).json({
+            success: false,
+            message: 'Invalid token signature'
+          });
+        }
+        
+        // Токен валиден - разрешаем просмотр всех статусов
+        statusCondition = "p.status IN ('draft', 'active', 'published', 'hidden')";
+        console.log('✅ Токен валиден - разрешен просмотр черновиков');
+        
+      } catch (error) {
+        console.log('❌ Ошибка проверки токена:', error);
+        return res.status(403).json({
+          success: false,
+          message: 'Invalid preview token format'
+        });
+      }
+    }
+
+    // Получаем основную информацию об объекте
     const properties: any = await db.query(
       `SELECT p.* FROM properties p
-       WHERE p.id = ? AND p.status = 'published' AND p.deleted_at IS NULL`,
+       WHERE p.id = ? AND ${statusCondition} AND p.deleted_at IS NULL`,
       [propertyId]
     );
 
